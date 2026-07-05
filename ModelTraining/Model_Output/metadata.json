@@ -1,0 +1,98 @@
+{
+  "best_model": "random_forest",
+  "feature_cols": [
+    "url_len",
+    "dom_len",
+    "is_ip",
+    "tld_len",
+    "subdom_cnt",
+    "letter_cnt",
+    "digit_cnt",
+    "special_cnt",
+    "eq_cnt",
+    "qm_cnt",
+    "amp_cnt",
+    "dot_cnt",
+    "dash_cnt",
+    "under_cnt",
+    "letter_ratio",
+    "digit_ratio",
+    "spec_ratio",
+    "is_https",
+    "slash_cnt",
+    "entropy",
+    "path_len",
+    "query_len"
+  ],
+  "all_scores": [
+    {
+      "model": "logistic_regression",
+      "accuracy": 0.9311,
+      "precision": 0.6951,
+      "recall": 0.919,
+      "f1": 0.7915,
+      "roc_auc": 0.977
+    },
+    {
+      "model": "random_forest",
+      "accuracy": 0.9795,
+      "precision": 0.9229,
+      "recall": 0.9337,
+      "f1": 0.9283,
+      "roc_auc": 0.9931
+    },
+    {
+      "model": "xgboost",
+      "accuracy": 0.9785,
+      "precision": 0.9176,
+      "recall": 0.9325,
+      "f1": 0.925,
+      "roc_auc": 0.9935
+    },
+    {
+      "model": "voting_ensemble",
+      "accuracy": 0.9766,
+      "precision": 0.9023,
+      "recall": 0.937,
+      "f1": 0.9193,
+      "roc_auc": 0.9927
+    }
+  ],
+  "best_scores": {
+    "model": "random_forest",
+    "accuracy": 0.9795,
+    "precision": 0.9229,
+    "recall": 0.9337,
+    "f1": 0.9283,
+    "roc_auc": 0.9931
+  },
+  "feature_importance": {
+    "is_https": 0.5249133110046387,
+    "digit_ratio": 0.11395683884620667,
+    "digit_cnt": 0.08582083135843277,
+    "entropy": 0.05521947890520096,
+    "dot_cnt": 0.02931952476501465,
+    "path_len": 0.025916581973433495,
+    "subdom_cnt": 0.024804798886179924,
+    "dom_len": 0.02308765798807144,
+    "dash_cnt": 0.02129833772778511,
+    "slash_cnt": 0.017804782837629318,
+    "letter_cnt": 0.013648373074829578,
+    "tld_len": 0.013505113311111927,
+    "special_cnt": 0.010101689025759697,
+    "url_len": 0.009951473213732243,
+    "spec_ratio": 0.008768860250711441,
+    "letter_ratio": 0.0054215723648667336,
+    "query_len": 0.003950448241084814,
+    "under_cnt": 0.0033699253108352423,
+    "eq_cnt": 0.0031928527168929577,
+    "amp_cnt": 0.0029831300489604473,
+    "qm_cnt": 0.0022252555936574936,
+    "is_ip": 0.0007391636027023196
+  },
+  "dataset": {
+    "total": 116600,
+    "benign": 100000,
+    "phishing": 16600
+  }
+}

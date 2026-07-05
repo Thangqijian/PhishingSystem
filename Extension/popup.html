@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deceptive Site Ahead</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Premium Styling and Reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    /* Mock page background for local previewing */
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 10% 20%, #151b29 0%, #090d16 90%);
+      overflow: hidden;
+    }
+    /* Floating Widget Container (Bottom Right) */
+    .ps-widget-container {
+      position: fixed;
+      bottom: 12px;
+      right: 24px;
+      width: 360px;
+      z-index: 2147483647;
+      transform: translateY(150%);
+      opacity: 0;
+
+      transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Risk Circle Bar */
+    .risk-container{
+      display:flex;
+      justify-content:center;
+      margin-bottom:20px;
+    }
+
+    .risk-circle{
+      position:relative;
+      width:140px;
+      height:140px;
+    }
+
+    .risk-circle svg{
+      display:block;
+      width:100%;
+      height:100%;
+      transform:rotate(-90deg);
+    }
+
+    .risk-bg{
+      fill:none;
+      stroke:#293548;
+      stroke-width:10;
+    }
+
+    .risk-progress{
+      fill:none;
+      stroke-width:10;
+      stroke-linecap:round;
+
+      stroke:#00ff88;
+
+      stroke-dasharray:377;
+      stroke-dashoffset:377;
+
+      transition:
+        stroke-dashoffset 1.5s ease,
+        stroke 1s ease;
+    }
+
+    .risk-score{
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%,-50%);
+      align-items:center;
+      display:flex;
+      flex-direction:column;
+      text-align:center;
+      width:96px;
+    }
+
+    .risk-score span{
+      font-size:28px;
+      font-weight:700;
+      color:white;
+    }
+
+    .risk-score-label {
+      color:#94a3b8;
+      font-size:9px;
+      font-weight:700;
+      line-height:1.2;
+      margin-top:2px;
+      text-transform:uppercase;
+    }
+
+    .ps-widget-container.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* exit animation */
+    .ps-widget-container.hide {
+      transform: translateY(150%);
+      opacity: 0;
+    }
+
+    /* Glassmorphic Danger Card */
+    .ps-card {
+      background: rgba(17, 24, 39, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 2147483647;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 14px;
+      box-shadow: 0 18px 46px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+      width: 100%;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .ps-loading-panel {
+      position: relative;
+      min-height: 430px;
+      padding: 30px 24px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      text-align: center;
+      color: #ffffff;
+    }
+    .ps-mini-settings {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 34px;
+      height: 34px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, .18);
+      background: rgba(15, 23, 42, .72);
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+    .ps-mini-settings:hover {
+      color: #ffffff;
+      background: rgba(30, 41, 59, .9);
+    }
+    .ps-widget-container.is-loading .ps-loading-panel {
+      display: flex;
+    }
+    .ps-widget-container.is-loading .ps-slider {
+      display: none;
+    }
+    .ps-scan-orbit {
+      position: relative;
+      width: 118px;
+      height: 118px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center, rgba(79, 172, 254, 0.2), rgba(79, 172, 254, 0.04) 62%, transparent 63%),
+        conic-gradient(from 180deg, #4facfe, #00f2fe, #ffb300, #4facfe);
+      animation: scanSpin 1.5s linear infinite;
+    }
+    .ps-scan-orbit::before {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: 50%;
+      background: #111827;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .ps-scan-core {
+      position: relative;
+      z-index: 1;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #4facfe;
+      background: rgba(79,172,254,.12);
+      border: 1px solid rgba(79,172,254,.35);
+    }
+    .ps-loading-title {
+      font-size: 19px;
+      font-weight: 700;
+    }
+    .ps-loading-copy {
+      max-width: 270px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+    .ps-scan-steps {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .ps-scan-step {
+      padding: 8px 6px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.06);
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    @keyframes scanSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    /* Carousel Slides Wrapper */
+    .ps-slider {
+      display: flex;
+      width: 200%; /* Two pages */
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    /* Single Slide Sheet */
+    .ps-slide {
+      width: 50%;
+      flex-shrink: 0;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      color: #ffffff;
+    }
+    /* Header Section */
+    .ps-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .ps-icon-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: rgba(255, 51, 102, 0.1);
+      color: #ff3366;
+      margin-bottom: 14px;
+      border: 2px solid rgba(255, 51, 102, 0.2);
+      box-shadow: 0 0 15px rgba(255, 51, 102, 0.15);
+      animation: pulseGlow 2.5s infinite ease-in-out;
+    }
+    @keyframes pulseGlow {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(255, 51, 102, 0.15);
+        background: rgba(255, 51, 102, 0.1);
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(255, 51, 102, 0.4);
+        background: rgba(255, 51, 102, 0.2);
+        border-color: rgba(255, 51, 102, 0.4);
+      }
+    }
+    .ps-icon {
+      width: 26px;
+      height: 26px;
+    }
+    .ps-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .ps-subtitle {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .ps-status-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 10px;
+      min-height: 26px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 51, 102, .12);
+      border: 1px solid rgba(255, 51, 102, .28);
+      color: #fecdd3;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .45px;
+    }
+    .ps-widget-container.ps-state-safe .ps-status-pill {
+      background: rgba(0, 255, 136, .1);
+      border-color: rgba(0, 255, 136, .28);
+      color: #bbf7d0;
+    }
+    .ps-widget-container.ps-state-suspicious .ps-status-pill {
+      background: rgba(255, 179, 0, .12);
+      border-color: rgba(255, 179, 0, .3);
+      color: #fde68a;
+    }
+    /* Content Area */
+    .ps-body {
+      background: rgba(10, 14, 23, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .ps-message {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      text-align: center;
+    }
+    .ps-domain {
+      color: #ffffff;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      word-break: break-all;
+    }
+    .ps-child-lock-notice {
+      display: grid;
+      gap: 3px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(245, 158, 11, .32);
+      border-radius: 8px;
+      background: rgba(245, 158, 11, .1);
+      color: #fde68a;
+      font-size: 12px;
+      line-height: 1.4;
+      text-align: left;
+    }
+    .ps-child-lock-notice[hidden] {
+      display: none;
+    }
+    .ps-child-lock-notice strong {
+      color: #fef3c7;
+      font-size: 12px;
+    }
+    .ps-download-approval-dialog {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(2, 6, 23, .78);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .ps-download-approval-dialog[hidden] {
+      display: none;
+    }
+    .ps-download-approval-panel {
+      width: min(380px, 100%);
+      padding: 18px;
+      border: 1px solid rgba(245, 158, 11, .34);
+      border-radius: 8px;
+      background: #111827;
+      box-shadow: 0 18px 38px rgba(0, 0, 0, .35);
+      color: #e2e8f0;
+    }
+    .ps-download-approval-panel h2 {
+      margin: 0 0 7px;
+      color: #f8fafc;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+    .ps-download-approval-panel p {
+      margin: 0 0 14px;
+      color: #cbd5e1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .ps-download-parent-field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 9px;
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .ps-download-parent-field[hidden] {
+      display: none;
+    }
+    .ps-download-parent-field input {
+      width: 100%;
+      min-height: 40px;
+      padding: 9px 10px;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      outline: none;
+      background: #0f172a;
+      color: #f8fafc;
+      font: inherit;
+      font-weight: 400;
+    }
+    .ps-download-parent-field input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, .14);
+    }
+    .ps-download-approval-error {
+      min-height: 18px;
+      margin-bottom: 7px;
+      color: #fda4af;
+      font-size: 12px;
+    }
+    .ps-download-approval-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+    .ps-source-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .ps-source-pill {
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, .82);
+      border: 1px solid rgba(148, 163, 184, .14);
+      color: #cbd5e1;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .35px;
+    }
+    /* Action Buttons */
+    .ps-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    .ps-btn {
+      width: 100%;
+      padding: 11px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ps-btn:disabled {
+      cursor: wait;
+      opacity: .58;
+    }
+    .ps-btn-primary {
+      background: #0891b2;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(8, 145, 178, 0.2);
+    }
+    .ps-btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(8, 145, 178, 0.32);
+    }
+    .ps-btn-secondary {
+      background: transparent;
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .ps-btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .ps-btn-link {
+      background: none;
+      border: none;
+      color: #ff3366;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      margin-top: 14px;
+      align-self: center;
+      transition: opacity 0.2s;
+    }
+    .ps-btn-link:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+    .ps-widget-container.ps-state-safe .ps-icon-wrapper {
+      background: rgba(0, 255, 136, 0.1);
+      color: #00ff88;
+      border-color: rgba(0, 255, 136, 0.25);
+      animation: safePulseGlow 2.5s infinite ease-in-out;
+    }
+    .ps-widget-container.ps-state-safe .ps-card {
+      border-color: rgba(0, 255, 136, .24);
+    }
+    .ps-widget-container.ps-state-safe .ps-btn-link {
+      color: #4facfe;
+    }
+    .ps-widget-container.ps-state-suspicious .ps-icon-wrapper {
+      background: rgba(255, 179, 0, 0.12);
+      color: #ffb300;
+      border-color: rgba(255, 179, 0, 0.28);
+      animation: warnPulseGlow 2.5s infinite ease-in-out;
+    }
+    .ps-widget-container.ps-state-suspicious .ps-card {
+      border-color: rgba(255, 179, 0, .26);
+    }
+    .ps-widget-container.ps-state-suspicious .ps-btn-link {
+      color: #ffb300;
+    }
+    .ps-widget-container.ps-state-phishing .ps-card {
+      border-color: rgba(255, 51, 102, .32);
+    }
+    @keyframes safePulseGlow {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(0, 255, 136, 0.14);
+        background: rgba(0, 255, 136, 0.1);
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(0, 255, 136, 0.34);
+        background: rgba(0, 255, 136, 0.18);
+      }
+    }
+    @keyframes warnPulseGlow {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(255, 179, 0, 0.14);
+        background: rgba(255, 179, 0, 0.12);
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(255, 179, 0, 0.32);
+        background: rgba(255, 179, 0, 0.2);
+      }
+    }
+    /* Slide 2 Specific Styling (Details View) */
+    .ps-details-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 8px;
+    }
+    .ps-indicators-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .ps-indicator-card {
+      background: rgba(10, 14, 23, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 10px;
+    }
+    .ps-indicator-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .ps-indicator-dot.red { background-color: #ff3366; box-shadow: 0 0 6px #ff3366; }
+    .ps-indicator-dot.orange { background-color: #ff8c00; box-shadow: 0 0 6px #ff8c00; }
+    .ps-indicator-dot.yellow { background-color: #ffd700; box-shadow: 0 0 6px #ffd700; }
+    .ps-indicator-text h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+    .ps-indicator-text p {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+    /* Footer Info */
+    .ps-footer {
+      margin-top: auto;
+      font-size: 10px;
+      color: #475569;
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 12px;
+    }
+    /* Swipe Transition Helper */
+    .show-details .ps-slider {
+      transform: translateX(-50%);
+    }
+
+    /* Loading Screen */
+    #ps-loader {
+
+      position: fixed;
+
+      inset: 0;
+
+      display: flex;
+
+      flex-direction: column;
+
+      justify-content: center;
+
+      align-items: center;
+
+      gap: 16px;
+
+      background: rgba(8,13,22,.95);
+
+      color: white;
+
+      z-index: 2147483647;
+    }
+
+    .loader-ring {
+
+        width: 90px;
+        height: 90px;
+
+        border: 6px solid rgba(255,255,255,.1);
+
+        border-top: 6px solid #4facfe;
+
+        border-radius: 50%;
+
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+  .ps-help-section {
+    margin-top: 18px;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(63, 49, 49, 0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .ps-help-title {
+    font-size: 12px;
+    color: #ffffff;
+    margin-bottom: 8px;
+  }
+
+  .ps-help-links {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ps-help-links a {
+    font-size: 11px;
+    color: #4facfe;
+    text-decoration: none;
+  }
+
+  .ps-help-links a:hover {
+    text-decoration: underline;
+  }
+
+  .ps-help-note {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-top: 8px;
+  }
+  .ps-report-scroll{
+    max-height:460px;
+    overflow-y:auto;
+    padding-right:6px;
+  }
+
+  .ps-report-scroll::-webkit-scrollbar{
+    width:6px;
+  }
+
+  .ps-report-scroll::-webkit-scrollbar-thumb{
+    background:rgba(255,255,255,.15);
+    border-radius:20px;
+  }
+
+  .ps-summary-card{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:12px;
+      padding:14px;
+      margin-bottom:16px;
+  }
+
+  .ps-summary-card h4{
+      margin-bottom:8px;
+      font-size:13px;
+      color:white;
+  }
+
+  .ps-summary-card p{
+      font-size:12px;
+      line-height:1.6;
+      color:#cbd5e1;
+  }
+
+  .ps-analysis-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-bottom:18px;
+  }
+
+  .ps-metric-card{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.05);
+      border-radius:10px;
+      padding:12px;
+      text-align:center;
+  }
+
+  .metric-label{
+      display:block;
+      font-size:11px;
+      color:#94a3b8;
+  }
+
+  .metric-value{
+      display:block;
+      margin-top:6px;
+      margin-bottom:4px;
+      font-size:18px;
+      font-weight:700;
+      color:white;
+  }
+
+  .ps-metric-card small{
+      color:#64748b;
+      font-size:10px;
+  }
+
+  .ps-section-title{
+      font-size:12px;
+      font-weight:700;
+      color:white;
+      margin-bottom:10px;
+      margin-top:16px;
+  }
+
+  .ps-tech-card{
+      background:rgba(255,255,255,.04);
+      border-radius:12px;
+      padding:12px;
+  }
+
+  .tech-row{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 0;
+      border-bottom:1px solid rgba(255,255,255,.05);
+      font-size:11px;
+  }
+
+  .tech-row:last-child{
+      border-bottom:none;
+  }
+
+  .tech-row span:first-child{
+      color:#94a3b8;
+  }
+
+  .tech-row span:last-child{
+      color:white;
+      text-align:right;
+      word-break:break-all;
+  }
+
+  #detection-results{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .ps-indicator-card{
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.05);
+    border-radius:10px;
+    padding:12px;
+  }
+
+  .ps-indicator-text h4{
+    font-size:12px;
+    color:white;
+    margin-bottom:4px;
+  }
+
+  .ps-indicator-text p{
+    font-size:11px;
+    color:#cbd5e1;
+    line-height:1.5;
+  }
+
+  .ps-card {
+    max-height: calc(100vh - 24px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, .35) transparent;
+  }
+
+  .ps-card::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .ps-card::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(148, 163, 184, .35);
+  }
+
+  @media (max-height: 820px) {
+    .ps-widget-container {
+      right: 12px;
+      bottom: 8px;
+    }
+
+    .ps-card {
+      max-height: calc(100vh - 16px);
+    }
+
+    .ps-slide {
+      padding: 16px 20px;
+    }
+
+    .ps-header {
+      margin-bottom: 8px;
+    }
+
+    .ps-icon-wrapper {
+      width: 46px;
+      height: 46px;
+      margin-bottom: 8px;
+    }
+
+    .ps-icon {
+      width: 22px;
+      height: 22px;
+    }
+
+    .ps-status-pill {
+      min-height: 22px;
+      margin-top: 6px;
+      padding: 3px 8px;
+    }
+
+    .risk-container {
+      margin-bottom: 10px;
+    }
+
+    .risk-circle {
+      width: 116px;
+      height: 116px;
+    }
+
+    .risk-score span {
+      font-size: 24px;
+    }
+
+    .ps-body {
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+
+    .ps-source-row {
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .ps-source-pill {
+      min-height: 30px;
+    }
+
+    .ps-actions {
+      gap: 7px;
+    }
+
+    .ps-btn {
+      padding: 9px 16px;
+    }
+
+    .ps-footer {
+      padding-top: 8px;
+    }
+  }
+  </style>
+</head>
+<body>
+  <!-- Floating Widget Wrapper -->
+  <div class="ps-widget-container" id="ps-widget">
+    <div class="ps-card"> 
+      <div id="ps-loading-panel" class="ps-loading-panel">
+        <button id="ps-btn-settings-loading" class="ps-mini-settings" type="button" aria-label="Open settings">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" stroke="currentColor" stroke-width="2"/>
+            <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.05.05a2.15 2.15 0 0 1-3.04 3.04l-.05-.05a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21.5a2.15 2.15 0 0 1-4.3 0v-.08a1.8 1.8 0 0 0-1.1-1.65 1.8 1.8 0 0 0-1.98.36l-.05.05a2.15 2.15 0 0 1-3.04-3.04l.05-.05A1.8 1.8 0 0 0 3.6 15a1.8 1.8 0 0 0-1.65-1.1H1.85a2.15 2.15 0 0 1 0-4.3h.1A1.8 1.8 0 0 0 3.6 8a1.8 1.8 0 0 0-.36-1.98l-.05-.05a2.15 2.15 0 0 1 3.04-3.04l.05.05A1.8 1.8 0 0 0 8.25 3.3 1.8 1.8 0 0 0 9.35 1.65V1.5a2.15 2.15 0 0 1 4.3 0v.15a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.05-.05a2.15 2.15 0 0 1 3.04 3.04l-.05.05A1.8 1.8 0 0 0 19.4 8a1.8 1.8 0 0 0 1.65 1.1h.1a2.15 2.15 0 0 1 0 4.3h-.1A1.8 1.8 0 0 0 19.4 15Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="ps-scan-orbit">
+          <div class="ps-scan-core">
+            <svg class="ps-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L4 6V11C4 16 7.5 20 12 21C16.5 20 20 16 20 11V6L12 2Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+              <path d="M9 12L11 14L15.5 9.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div>
+          <div class="ps-loading-title">Analyzing website</div>
+          <p id="ps-loading-copy" class="ps-loading-copy">
+            Checking the URL, redirects, phishing indicators, and download risk before allowing interaction.
+          </p>
+        </div>
+        <div class="ps-scan-steps">
+          <span class="ps-scan-step">ML model</span>
+          <span class="ps-scan-step">Heuristics</span>
+          <span class="ps-scan-step">Downloads</span>
+        </div>
+      </div>
+      <div class="ps-slider">
+        <!-- SLIDE 1: Warning Details & Actions -->
+        <div class="ps-slide">
+          <div class="ps-header">
+            <div class="ps-icon-wrapper">
+              <svg class="ps-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L3 7V12C3 17.5 7 21 12 22C17 21 21 17.5 21 12V7L12 2Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 8V12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="12" cy="16" r="1.25" fill="currentColor"/>
+              </svg>
+            </div>
+            <h1 class="ps-title">Deceptive Site Ahead</h1>
+            <p class="ps-subtitle">PhishShield AI Flag</p>
+            <span id="ps-status-pill" class="ps-status-pill">Analyzing</span>
+          </div>
+          
+          <div class="risk-container">
+            <div class="risk-circle">
+                <svg viewBox="0 0 140 140" aria-hidden="true">
+
+                    <circle
+                        class="risk-bg"
+                        cx="70"
+                        cy="70"
+                        r="60">
+                    </circle>
+
+                    <circle
+                        id="risk-progress"
+                        class="risk-progress"
+                        cx="70"
+                        cy="70"
+                        r="60">
+                    </circle>
+
+                </svg>
+                <div class="risk-score">
+                    <span id="risk-score-text">0%</span>
+                    <small id="risk-score-label" class="risk-score-label">MALICIOUS RISK</small>
+                </div>
+            </div>
+        </div>
+
+        <h1 id="risk-title" class="ps-title">
+        Checking Website
+        </h1>
+
+          <div class="ps-body">
+            <p class="ps-message">
+              PhishShield AI has flagged <strong class="ps-domain" id="ps-domain-text">examplephish.com</strong> as suspicious. 
+              This site may steal your password or credit card details.
+            </p>
+          </div>
+
+          <div id="ps-child-lock-notice" class="ps-child-lock-notice" role="status" aria-live="polite" hidden>
+            <strong>Child Lock is active</strong>
+            <span>Returning to safety in <span id="ps-child-lock-countdown">5</span> seconds.</span>
+          </div>
+
+          <div class="ps-source-row" aria-label="Detection sources">
+            <span class="ps-source-pill">ML Model</span>
+            <span class="ps-source-pill">Rules</span>
+            <span class="ps-source-pill">Intel</span>
+          </div>
+          
+          <div class="ps-actions">
+            <button id="ps-btn-safe" class="ps-btn ps-btn-primary">Go Back to Safety</button>
+            <button id="ps-btn-continue" class="ps-btn ps-btn-secondary">Continue Anyway</button>
+            <button id="ps-btn-settings" class="ps-btn ps-btn-secondary">Settings</button>
+          </div>
+          
+          <button id="ps-btn-details" class="ps-btn-link">Why is this flagged?</button>
+          
+          <div class="ps-footer">
+            <span>Powered by ML Detection Framework</span>
+          </div>
+        </div>
+        
+        <!-- SLIDE 2: Advanced Threat Analysis -->
+        <div class="ps-slide">
+          <h2 class="ps-details-title">
+            Security Analysis Report
+          </h2>
+          <div class="ps-report-scroll">
+            <!-- Threat Summary -->
+            <div class="ps-summary-card">
+              <h4>Threat Assessment</h4>
+              <p id="threat-summary-text">
+                PhishShield is analyzing this website using machine learning,
+                heuristic detection, redirect analysis, download inspection,
+                and threat intelligence databases.
+              </p>
+            </div>
+            <!-- Risk Breakdown -->
+            <div class="ps-analysis-grid">
+              <div class="ps-metric-card">
+                <span class="metric-label">
+                  ML Confidence
+                </span>
+                <span id="ml-confidence"
+                      class="metric-value">
+                  --
+                </span>
+                <small>
+                  AI phishing prediction
+                </small>
+              </div>
+              <div class="ps-metric-card">
+                <span class="metric-label">
+                  Heuristic Risk
+                </span>
+                <span id="heuristic-risk"
+                      class="metric-value">
+                  --
+                </span>
+                <small>
+                  Rule-based analysis
+                </small>
+              </div>
+              <div class="ps-metric-card">
+                <span class="metric-label">
+                  Risk Level
+                </span>
+                <span id="risk-level"
+                      class="metric-value">
+                  --
+                </span>
+                <small>
+                  Final classification
+                </small>
+              </div>
+              <div class="ps-metric-card">
+                <span class="metric-label">
+                  Redirects
+                </span>
+                <span id="redirect-count"
+                      class="metric-value">
+                  --
+                </span>
+                <small>
+                  Redirect chain depth
+                </small>
+              </div>
+              <div class="ps-metric-card">
+                <span class="metric-label">
+                  Threat Sources
+                </span>
+                <span id="threat-sources"
+                      class="metric-value">
+                  --
+                </span>
+                <small>
+                  Detection engines triggered
+                </small>
+              </div>
+            </div>
+            <!-- Detection Results -->
+            <div class="ps-section-title">
+              Detection Results
+            </div>
+            <div id="detection-results">
+              <!-- Generated dynamically by content.js -->
+            </div>
+            <!-- Technical Information -->
+            <div class="ps-section-title">
+              Technical Information
+            </div>
+            <div class="ps-tech-card">
+              <div class="tech-row">
+                <span>Resolved URL</span>
+                <span id="resolved-url">
+                  --
+                </span>
+              </div>
+              <div class="tech-row">
+                <span>URLHaus Database</span>
+                <span id="urlhaus-status">
+                  Not Checked
+                </span>
+              </div>
+              <div class="tech-row">
+                <span>Cross Domain Redirect</span>
+                <span id="cross-domain-status">
+                  --
+                </span>
+              </div>
+              <div class="tech-row">
+                <span>Download Threat</span>
+                <span id="download-status">
+                  None
+                </span>
+              </div>
+              <div class="tech-row">
+                <span>Model Used</span>
+                <span id="model-used">
+                  --
+                </span>
+              </div>
+            </div>
+            <!-- Detection Engines -->
+            <div class="ps-section-title">
+              Detection Engines
+            </div>
+            <div class="ps-tech-card">
+              <div class="tech-row">
+                <span>Machine Learning Model</span>
+                <span id="ml-status">
+                  Active
+                </span>
+              </div>
+              <div class="tech-row">
+                <span>Heuristic Engine</span>
+                <span id="heuristic-status">
+                  Active
+                </span>
+              </div>
+              <div class="tech-row">
+                <span>Threat Intelligence</span>
+                <span id="intel-status">
+                  Active
+                </span>
+              </div>
+            </div>
+            <!-- Educational Section -->
+            <div class="ps-section-title">
+              What This Means
+            </div>
+            <div class="ps-summary-card">
+              <p id="education-text">
+                PhishShield combines machine learning,
+                URL analysis, redirect inspection,
+                malicious download detection,
+                and threat intelligence databases
+                to evaluate website risk.
+              </p>
+            </div>
+            <!-- Security Resources -->
+            <div class="ps-help-section">
+              <h4 class="ps-help-title">
+                Security Resources
+              </h4>
+              <div class="ps-help-links">
+                <a href="https://urlhaus.abuse.ch/"
+                  target="_blank">
+                  URLHaus Malware URL Database
+                </a>
+                <a href="https://safebrowsing.google.com/"
+                  target="_blank">
+                  Google Safe Browsing
+                </a>
+                <a href="https://consumer.ftc.gov/articles/how-recognize-and-avoid-phishing-scams"
+                  target="_blank">
+                  FTC Phishing Guide
+                </a>
+              </div>
+              <p class="ps-help-note">
+                These resources may be used for secondary
+                verification when investigating suspicious
+                websites.
+              </p>
+            </div>
+          </div>
+          <div class="ps-actions">
+            <button id="back-btn"
+                    class="ps-btn ps-btn-secondary">
+              Back
+            </button>
+          </div>
+          <div class="ps-footer">
+            <span id="scan-footer">
+              Waiting for analysis...
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ps-download-approval-dialog" class="ps-download-approval-dialog" aria-hidden="true" hidden>
+    <form id="ps-download-approval-form" class="ps-download-approval-panel" role="dialog" aria-modal="true" aria-labelledby="ps-download-approval-title">
+      <h2 id="ps-download-approval-title">Confirm high-risk download</h2>
+      <p id="ps-download-approval-message">
+        Continue only if you trust this website and expected this file.
+      </p>
+
+      <label id="ps-download-parent-field" class="ps-download-parent-field" hidden>
+        <span>Parent password</span>
+        <input id="ps-download-parent-password" type="password" autocomplete="current-password">
+      </label>
+
+      <div id="ps-download-approval-error" class="ps-download-approval-error" role="alert" aria-live="polite"></div>
+
+      <div class="ps-download-approval-actions">
+        <button id="ps-download-approval-cancel" class="ps-btn ps-btn-secondary" type="button">Cancel</button>
+        <button id="ps-download-approval-submit" class="ps-btn ps-btn-primary" type="submit">Download Anyway</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

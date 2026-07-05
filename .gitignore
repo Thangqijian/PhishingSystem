@@ -1,0 +1,6 @@
+Backend/.env
+Data/Dataset.csv
+*.pyc
+__pycache__/
+.superpowers/
+.tmp-chrome-profile/

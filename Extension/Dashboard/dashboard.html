@@ -1,0 +1,1083 @@
+<div class="dashboard-modal">
+  <div class="dashboard-card">
+    <div class="dashboard-header">
+      <div class="brand-block">
+        <span class="brand-mark">PS</span>
+        <div>
+          <h2>PhishShield Dashboard</h2>
+          <p>Protection settings, URLHaus status, and demo tools</p>
+        </div>
+      </div>
+
+      <button id="dashboard-close" class="icon-btn" type="button" aria-label="Close settings">x</button>
+    </div>
+
+    <div class="summary-strip">
+      <div>
+        <span class="eyebrow">Current status</span>
+        <h3 id="protection-headline">Protection is active</h3>
+        <p id="protection-copy">URL scans, heuristic checks, download checks, and URLHaus matching are available when the local backend is running.</p>
+      </div>
+      <span id="backend-status" class="status-pill">Checking backend</span>
+    </div>
+
+    <div class="dashboard-tabs">
+      <button class="tab-btn active" type="button" data-tab="overview">Overview</button>
+      <button class="tab-btn" type="button" data-tab="intel">URLHaus</button>
+      <button class="tab-btn" type="button" data-tab="demo">Demo</button>
+      <button class="tab-btn" type="button" data-tab="protection">Settings</button>
+      <button class="tab-btn" type="button" data-tab="activity">Activity</button>
+    </div>
+
+    <div class="dashboard-body">
+      <section class="tab-panel active" data-panel="overview">
+        <div class="dashboard-stats">
+          <div class="stat-box">
+            <span id="scanned-count">0</span>
+            <p>Sites scanned</p>
+          </div>
+
+          <div class="stat-box danger">
+            <span id="blocked-count">0</span>
+            <p>Threats blocked</p>
+          </div>
+
+          <div class="stat-box warning">
+            <span id="download-blocked-count">0</span>
+            <p>Downloads stopped</p>
+          </div>
+        </div>
+
+        <div class="section-grid">
+          <div class="info-panel">
+            <div class="panel-title">
+              <span class="dot dot-green"></span>
+              <h3>Detection methods</h3>
+            </div>
+            <div class="check-list">
+              <span>Machine learning model</span>
+              <span>Heuristic URL rules</span>
+              <span>Redirect inspection</span>
+              <span>Download extension guard</span>
+              <span>URLHaus threat feed</span>
+            </div>
+          </div>
+
+          <div class="info-panel">
+            <div class="panel-title">
+              <span class="dot dot-blue"></span>
+              <h3>Threat feed</h3>
+            </div>
+            <div class="intel-mini">
+              <span id="overview-urlhaus-count">-- URLs loaded</span>
+              <small id="overview-urlhaus-updated">Checking URLHaus database</small>
+            </div>
+            <button id="refresh-status-btn" class="secondary-action" type="button">Check status</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="intel">
+        <div class="info-panel wide">
+          <div class="panel-title">
+            <span class="dot dot-blue"></span>
+            <h3>URLHaus database</h3>
+          </div>
+          <p class="panel-copy">
+            The backend compares scanned URLs with a local URLHaus CSV file. Use this section to check how many entries were loaded and whether refresh is configured.
+          </p>
+
+          <div class="intel-grid">
+            <div>
+              <span class="metric-label">Loaded URLs</span>
+              <strong id="intel-url-count">--</strong>
+            </div>
+            <div>
+              <span class="metric-label">Loaded Domains</span>
+              <strong id="intel-domain-count">--</strong>
+            </div>
+            <div>
+              <span class="metric-label">Last Loaded</span>
+              <strong id="intel-loaded-at">--</strong>
+            </div>
+            <div>
+              <span class="metric-label">Update Mode</span>
+              <strong id="intel-update-mode">--</strong>
+            </div>
+          </div>
+
+          <div class="source-row">
+            <span>Source file</span>
+            <code id="intel-source-file">--</code>
+          </div>
+
+          <div id="intel-message" class="notice neutral">Checking threat intelligence status...</div>
+
+          <div class="action-row">
+            <button id="refresh-intel-btn" class="secondary-action" type="button">Check status</button>
+            <button id="update-urlhaus-btn" class="primary-action" type="button">Update URLHaus now</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="demo">
+        <div class="info-panel wide">
+          <div class="panel-title">
+            <span class="dot dot-red"></span>
+            <h3>Demo links</h3>
+          </div>
+          <p class="panel-copy">
+            These links are for presentation testing. The malicious download example is a harmless local URL that triggers the high-risk download rule.
+          </p>
+
+          <div class="demo-list">
+            <div class="demo-item">
+              <div>
+                <strong>Safe website example</strong>
+                <small>Shows a normal low-risk result.</small>
+              </div>
+              <button class="open-demo-btn" type="button" data-demo="safe">Open</button>
+            </div>
+            <div class="demo-item">
+              <div>
+                <strong>Suspicious login simulation</strong>
+                <small>Uses login, verify, brand, and redirect patterns.</small>
+              </div>
+              <button class="open-demo-btn" type="button" data-demo="suspicious">Open</button>
+            </div>
+            <div class="demo-item danger">
+              <div>
+                <strong>Malicious download simulation</strong>
+                <small id="malicious-demo-url">http://127.0.0.1:5000/demo/malicious-download.exe</small>
+              </div>
+              <button class="open-demo-btn danger" type="button" data-demo="malicious">Open</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="protection">
+        <label class="setting-row">
+          <span>
+            <strong>Enable Protection</strong>
+            <small>Scan URLs and block high-risk pages.</small>
+          </span>
+          <input type="checkbox" id="protection-toggle">
+        </label>
+
+        <label class="setting-row">
+          <span>
+            <strong>Show Safe Notifications</strong>
+            <small>Show a short popup when a page is safe.</small>
+          </span>
+          <input type="checkbox" id="safe-notification-toggle">
+        </label>
+
+        <label class="setting-row">
+          <span>
+            <strong>Remember Bypassed Sites</strong>
+            <small>Avoid repeated warnings after Continue Anyway.</small>
+          </span>
+          <input type="checkbox" id="remember-bypass">
+        </label>
+
+        <label class="setting-row">
+          <span>
+            <strong>Enable Child Lock</strong>
+            <small>Require a parent password before opening settings.</small>
+          </span>
+          <input type="checkbox" id="child-lock-toggle">
+        </label>
+
+        <div class="panel-group child-lock-password-panel">
+          <div>
+            <h3>Parent password</h3>
+            <p id="child-lock-password-status">Set when Child Lock is enabled for the first time.</p>
+          </div>
+          <button id="reset-child-password-btn" class="secondary-action" type="button">Reset password</button>
+        </div>
+
+        <div class="panel-group">
+          <h3>Maintenance</h3>
+          <div class="button-grid">
+            <button id="clear-cache-btn" type="button">Clear blocked cache</button>
+            <button id="clear-bypass-btn" type="button">Clear bypassed sites</button>
+            <button id="reset-btn" type="button">Reset statistics</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="tab-panel" data-panel="activity">
+        <div class="activity-header">
+          <div>
+            <h3>Recently blocked sites</h3>
+            <p>Domains blocked by phishing or download checks.</p>
+          </div>
+        </div>
+        <div id="blocked-list-container" class="list-box">No blocked sites yet.</div>
+
+        <div class="activity-header">
+          <div>
+            <h3>Bypassed sites</h3>
+            <p>Sites allowed after Continue Anyway.</p>
+          </div>
+          <span id="bypassed-count" class="mini-count">0</span>
+        </div>
+        <div id="bypassed-list-container" class="list-box">No bypassed sites yet.</div>
+      </section>
+    </div>
+
+    <div class="dashboard-footer">
+      <span>Engine version 1.0.0</span>
+      <span>Final year project</span>
+    </div>
+
+    <div id="protection-off-toast" class="protection-toast" role="status" aria-live="polite">
+      <strong>Protection is turned off</strong>
+      <span>Click the extension icon at the top of the browser to open settings again.</span>
+    </div>
+
+    <div id="child-lock-dialog" class="child-lock-dialog" aria-hidden="true" hidden>
+      <form id="child-lock-form" class="child-lock-dialog-card" role="dialog" aria-modal="true" aria-labelledby="child-lock-dialog-title">
+        <div class="child-lock-dialog-header">
+          <span class="lock-mark" aria-hidden="true">CL</span>
+          <div>
+            <h3 id="child-lock-dialog-title">Parent password</h3>
+            <p id="child-lock-dialog-message">Enter the parent password to continue.</p>
+          </div>
+        </div>
+
+        <label id="child-lock-current-field" class="password-field">
+          <span>Current password</span>
+          <input id="child-lock-current-password" type="password" autocomplete="current-password">
+        </label>
+
+        <label id="child-lock-new-field" class="password-field">
+          <span>New password</span>
+          <input id="child-lock-new-password" type="password" autocomplete="new-password">
+        </label>
+
+        <label id="child-lock-confirm-field" class="password-field">
+          <span>Confirm password</span>
+          <input id="child-lock-confirm-password" type="password" autocomplete="new-password">
+        </label>
+
+        <div id="child-lock-dialog-error" class="child-lock-dialog-error" role="alert" aria-live="polite"></div>
+
+        <div class="child-lock-dialog-actions">
+          <button id="child-lock-dialog-cancel" type="button">Cancel</button>
+          <button id="child-lock-dialog-submit" class="primary-action" type="submit">Confirm</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  .dashboard-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 18px;
+    background: rgba(15, 23, 42, .34);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 2147483647;
+    pointer-events: auto;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .dashboard-card {
+    position: relative;
+    width: min(900px, 96vw);
+    max-height: 90vh;
+    overflow: hidden;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, .18);
+    color: #111827;
+  }
+
+  .dashboard-card.auth-checking .summary-strip,
+  .dashboard-card.auth-checking .dashboard-tabs,
+  .dashboard-card.auth-checking .dashboard-body,
+  .dashboard-card.auth-checking .dashboard-footer {
+    pointer-events: none;
+  }
+
+  .dashboard-header {
+    padding: 16px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid #dbe2ea;
+    background: #ffffff;
+  }
+
+  .brand-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    background: #1f2937;
+    color: #ffffff;
+    font-weight: 800;
+    letter-spacing: 0;
+    flex: 0 0 auto;
+  }
+
+  .dashboard-header h2,
+  .summary-strip h3,
+  .panel-title h3,
+  .panel-group h3,
+  .activity-header h3 {
+    margin: 0;
+    letter-spacing: 0;
+  }
+
+  .dashboard-header h2 {
+    margin-bottom: 3px;
+    font-size: 19px;
+    font-weight: 700;
+  }
+
+  .dashboard-header p,
+  .summary-strip p,
+  .setting-row small,
+  .activity-header p,
+  .panel-copy,
+  .demo-item small {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    transition:
+      background-color .16s ease,
+      border-color .16s ease,
+      color .16s ease,
+      transform .16s ease;
+  }
+
+  .icon-btn:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+    transform: translateY(-1px);
+  }
+
+  .icon-btn:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .2);
+    outline-offset: 2px;
+  }
+
+  .icon-btn:active {
+    transform: translateY(0);
+  }
+
+  .summary-strip {
+    padding: 16px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    background: #f1f5f9;
+    border-bottom: 1px solid #dbe2ea;
+  }
+
+  .eyebrow {
+    display: block;
+    margin-bottom: 6px;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+  }
+
+  .summary-strip h3 {
+    margin-bottom: 5px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .status-pill,
+  .mini-count {
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .status-pill.online {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+  }
+
+  .status-pill.offline {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #991b1b;
+  }
+
+  .dashboard-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    padding: 0 14px;
+    background: #ffffff;
+    border-bottom: 1px solid #dbe2ea;
+  }
+
+  .tab-btn {
+    min-height: 42px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .tab-btn:hover {
+    color: #111827;
+    background: #f8fafc;
+  }
+
+  .tab-btn.active {
+    border-bottom-color: #2563eb;
+    color: #1d4ed8;
+  }
+
+  .dashboard-body {
+    max-height: min(57vh, 500px);
+    overflow-y: auto;
+    padding: 16px 18px;
+    background: #f8fafc;
+  }
+
+  .dashboard-body::-webkit-scrollbar,
+  .list-box::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  .dashboard-body::-webkit-scrollbar-track,
+  .list-box::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dashboard-body::-webkit-scrollbar-thumb,
+  .list-box::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 999px;
+  }
+
+  .tab-panel {
+    display: none;
+  }
+
+  .tab-panel.active {
+    display: block;
+  }
+
+  .dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .stat-box,
+  .info-panel,
+  .setting-row,
+  .panel-group,
+  .list-box {
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #dbe2ea;
+  }
+
+  .stat-box {
+    min-height: 82px;
+    padding: 14px;
+  }
+
+  .stat-box span {
+    display: block;
+    font-size: 25px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .stat-box p {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 11px;
+  }
+
+  .stat-box.danger span {
+    color: #b91c1c;
+  }
+
+  .stat-box.warning span {
+    color: #b45309;
+  }
+
+  .section-grid {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap: 10px;
+  }
+
+  .info-panel {
+    padding: 14px;
+  }
+
+  .info-panel.wide {
+    max-width: 100%;
+  }
+
+  .panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .panel-title h3,
+  .panel-group h3,
+  .activity-header h3 {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+
+  .dot-green {
+    background: #16a34a;
+  }
+
+  .dot-blue {
+    background: #2563eb;
+  }
+
+  .dot-red {
+    background: #dc2626;
+  }
+
+  .check-list {
+    display: grid;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .check-list span {
+    padding: 9px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 12px;
+    background: #ffffff;
+  }
+
+  .check-list span:last-child {
+    border-bottom: none;
+  }
+
+  .intel-mini {
+    display: grid;
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+
+  .intel-mini span {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+  }
+
+  .intel-mini small {
+    color: #64748b;
+  }
+
+  .intel-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .intel-grid > div {
+    padding: 11px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+
+  .metric-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #64748b;
+    font-size: 11px;
+  }
+
+  .intel-grid strong {
+    display: block;
+    color: #111827;
+    font-size: 14px;
+    word-break: break-word;
+  }
+
+  .source-row {
+    display: grid;
+    grid-template-columns: 82px 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 0;
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  .source-row code {
+    color: #334155;
+    word-break: break-all;
+    white-space: normal;
+  }
+
+  .notice {
+    margin: 10px 0 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .notice.neutral {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+  }
+
+  .notice.success {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+  }
+
+  .notice.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+  }
+
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .demo-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .demo-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1px solid #dbe2ea;
+  }
+
+  .demo-item.danger {
+    border-color: #fecaca;
+    background: #fffafa;
+  }
+
+  .demo-item strong,
+  .setting-row strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    color: #111827;
+  }
+
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    align-items: center;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+
+  input[type="checkbox"] {
+    width: 40px;
+    height: 21px;
+    accent-color: #2563eb;
+    flex: 0 0 auto;
+  }
+
+  .panel-group {
+    padding: 14px;
+    margin-top: 12px;
+  }
+
+  .child-lock-password-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .child-lock-password-panel p {
+    margin: 5px 0 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  #reset-child-password-btn {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  #reset-child-password-btn:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+  }
+
+  .button-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  button {
+    font: inherit;
+  }
+
+  #reset-child-password-btn,
+  #clear-cache-btn,
+  #clear-bypass-btn,
+  #reset-btn,
+  .secondary-action,
+  .primary-action,
+  .open-demo-btn {
+    min-height: 39px;
+    padding: 9px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 12px;
+    border: 1px solid #cbd5e1;
+  }
+
+  .primary-action,
+  .open-demo-btn {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+  }
+
+  .secondary-action,
+  #clear-cache-btn,
+  #clear-bypass-btn {
+    background: #ffffff;
+    color: #334155;
+  }
+
+  .open-demo-btn.danger,
+  #reset-btn {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+  }
+
+  .secondary-action {
+    width: 100%;
+  }
+
+  .activity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 14px 0 8px;
+  }
+
+  .activity-header:first-child {
+    margin-top: 0;
+  }
+
+  .mini-count {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+  }
+
+  .list-box {
+    max-height: 142px;
+    overflow-y: auto;
+    padding: 10px;
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  .list-item,
+  .blocked-item {
+    padding: 9px 10px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    word-break: break-word;
+  }
+
+  .list-item:last-child,
+  .blocked-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .dashboard-footer {
+    padding: 11px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #dbe2ea;
+    background: #ffffff;
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  .protection-toast {
+    position: absolute;
+    right: 18px;
+    bottom: 48px;
+    width: min(320px, calc(100% - 36px));
+    display: none;
+    gap: 3px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, .16);
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .protection-toast.show {
+    display: grid;
+  }
+
+  .protection-toast strong {
+    color: #78350f;
+  }
+
+  .child-lock-dialog {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(15, 23, 42, .48);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
+  .child-lock-dialog[hidden] {
+    display: none;
+  }
+
+  .child-lock-dialog-card {
+    width: min(390px, 100%);
+    padding: 18px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, .22);
+  }
+
+  .child-lock-dialog-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    margin-bottom: 16px;
+  }
+
+  .lock-mark {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 6px;
+    background: #1f2937;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .child-lock-dialog-header h3 {
+    margin: 0 0 4px;
+    color: #111827;
+    font-size: 16px;
+  }
+
+  .child-lock-dialog-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .password-field {
+    display: grid;
+    gap: 6px;
+    margin-top: 11px;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .password-field[hidden] {
+    display: none;
+  }
+
+  .password-field input {
+    width: 100%;
+    min-height: 39px;
+    padding: 9px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    outline: none;
+    background: #ffffff;
+    color: #111827;
+    font: inherit;
+    font-weight: 400;
+  }
+
+  .password-field input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+  }
+
+  .child-lock-dialog-error {
+    min-height: 18px;
+    margin-top: 10px;
+    color: #b91c1c;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .child-lock-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 7px;
+  }
+
+  .child-lock-dialog-actions button {
+    min-height: 38px;
+    padding: 8px 13px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #334155;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .child-lock-dialog-actions .primary-action {
+    border-color: #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+  }
+
+  .child-lock-dialog-actions button:disabled {
+    cursor: wait;
+    opacity: .65;
+  }
+
+  @media (max-width: 760px) {
+    .dashboard-card {
+      width: 96vw;
+    }
+
+    .summary-strip,
+    .dashboard-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .dashboard-tabs {
+      grid-template-columns: repeat(3, 1fr);
+      padding: 0 8px;
+    }
+
+    .dashboard-stats,
+    .section-grid,
+    .intel-grid,
+    .action-row,
+    .button-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard-body {
+      max-height: 58vh;
+    }
+
+    .child-lock-password-panel {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>
+
+<script src="../child-lock.js"></script>
+<script src="../bypass-records.js"></script>
+<script type="module" src="./dashboard-entry.js"></script>

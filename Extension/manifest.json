@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "PhishGuard",
+  "version": "1.2.1",
+  "description": "An Intelligent Browser Based System of Phishing URL",
+
+  "permissions": [
+    "storage",
+    "downloads",
+    "tabs",
+    "notifications",
+    "webNavigation",
+    "declarativeNetRequest",
+    "scripting"
+  ],
+
+  "host_permissions": [
+      "http://localhost:5000/*",
+      "http://127.0.0.1:5000/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "icons": {
+  "16": "icons/icon16.png",
+  "48": "icons/icon48.png",
+  "128": "icons/icon128.png"
+  },
+  
+  "action": {
+    "default_title": "Open PhishShield Dashboard"
+  },
+  "options_ui": {
+    "page": "Dashboard/dashboard.html",
+    "open_in_tab": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-helpers.js", "child-lock.js", "bypass-records.js", "content.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["interaction-recorder.js"],
+      "all_frames": true,
+      "match_about_blank": true,
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["popup.html", "Dashboard/dashboard.html", "Dashboard/dashboard.js", "Dashboard/dashboard-entry.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
