@@ -2,6 +2,7 @@ importScripts("download-allowance.js");
 importScripts("bypass-records.js", "navigation-guard.js");
 
 const API_URL = "http://localhost:5000/analyze";
+const DEFAULT_SAFETY_URL = "https://www.google.com";
 const downloadAllowanceHelpers = globalThis.PhishShieldDownloadAllowances;
 const bypassRecordHelpers = globalThis.PhishShieldBypassRecords;
 const navigationGuard = globalThis.PhishShieldNavigationGuard;
@@ -73,16 +74,89 @@ const lastUrlPerTab = {};
 const recentInteractionsByTab = {};
 const recentGlobalInteractions = [];
 const pendingCreatedTabs = {};
+const spawnedTabs = {};
+const unexpectedRedirectTabs = {};
 const handledCreatedTabs = new Set();
 const MAX_RECENT_GLOBAL_INTERACTIONS = 12;
+const REDIRECT_TAB_CONTEXT_MAX_AGE_MS = 10 * 60 * 1000;
 
 function markCreatedTabHandled(tabId) {
   handledCreatedTabs.add(tabId);
   setTimeout(() => handledCreatedTabs.delete(tabId), 5000);
 }
 
+function rememberSpawnedTab(tabId, openerTabId = null, targetUrl = "") {
+  if (!tabId || !openerTabId) return null;
+
+  const existing = spawnedTabs[tabId] || {};
+  const now = Date.now();
+  const context = {
+    openerTabId: openerTabId || existing.openerTabId || null,
+    targetUrl: targetUrl || existing.targetUrl || "",
+    createdAt: existing.createdAt || now,
+    updatedAt: now,
+  };
+
+  spawnedTabs[tabId] = context;
+  return context;
+}
+
+function getSpawnedTab(tabId, now = Date.now()) {
+  if (!tabId) return null;
+
+  const context = spawnedTabs[tabId];
+  if (!context) return null;
+
+  const createdAt = Number(context.createdAt || context.updatedAt);
+  if (
+    Number.isFinite(createdAt) &&
+    now - createdAt > REDIRECT_TAB_CONTEXT_MAX_AGE_MS
+  ) {
+    delete spawnedTabs[tabId];
+    return null;
+  }
+
+  return context;
+}
+
+function rememberUnexpectedRedirectTab(tabId, openerTabId = null, targetUrl = "") {
+  if (!tabId) return null;
+
+  const existing = unexpectedRedirectTabs[tabId] || {};
+  const now = Date.now();
+  const context = {
+    openerTabId: openerTabId || existing.openerTabId || null,
+    targetUrl: targetUrl || existing.targetUrl || "",
+    detectedAt: existing.detectedAt || now,
+    updatedAt: now,
+  };
+
+  unexpectedRedirectTabs[tabId] = context;
+  return context;
+}
+
+function getUnexpectedRedirectTab(tabId, now = Date.now()) {
+  if (!tabId) return null;
+
+  const context = unexpectedRedirectTabs[tabId];
+  if (!context) return null;
+
+  const detectedAt = Number(context.detectedAt || context.updatedAt);
+  if (
+    Number.isFinite(detectedAt) &&
+    now - detectedAt > REDIRECT_TAB_CONTEXT_MAX_AGE_MS
+  ) {
+    delete unexpectedRedirectTabs[tabId];
+    return null;
+  }
+
+  return context;
+}
+
 function trackCreatedTab(tabId, openerTabId, targetUrl = "") {
   if (!tabId || !openerTabId || handledCreatedTabs.has(tabId)) return;
+
+  rememberSpawnedTab(tabId, openerTabId, targetUrl);
 
   const existing = pendingCreatedTabs[tabId];
   if (existing) {
@@ -148,11 +222,11 @@ async function evaluateCreatedTab(tabId) {
 
   pending.timer = null;
   const now = Date.now();
+  const targetUrl = pending.targetUrl || "";
   const interaction =
     pending.interaction ||
     recentInteractionsByTab[pending.openerTabId] ||
     getUnexpectedInteractionForUrl(targetUrl, now);
-  const targetUrl = pending.targetUrl || "";
 
   if (
     now - pending.createdAt >
@@ -190,10 +264,11 @@ async function evaluateCreatedTab(tabId) {
     });
   if (!isUnexpected) return;
 
-  chrome.tabs.remove(tabId, () => void chrome.runtime.lastError);
-  chrome.tabs.sendMessage(pending.openerTabId, {
+  rememberUnexpectedRedirectTab(tabId, pending.openerTabId, targetUrl);
+  chrome.tabs.sendMessage(tabId, {
     action: "unexpectedRedirectBlocked",
     url: targetUrl,
+    closeTabOnSafety: true,
   }).catch(() => {});
 }
 
@@ -219,6 +294,67 @@ function hasDangerousDownloadExtension(url = "", filename = "") {
   return DANGEROUS_DOWNLOAD_EXTENSIONS.some((ext) =>
     candidates.some((candidate) => candidate.endsWith(ext))
   );
+}
+
+function isSafeWebUrl(url = "") {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch (error) {
+    return false;
+  }
+}
+
+function getTab(tabId) {
+  return new Promise((resolve) => {
+    if (!tabId) {
+      resolve(null);
+      return;
+    }
+
+    chrome.tabs.get(tabId, (tab) => {
+      if (chrome.runtime.lastError) {
+        resolve(null);
+        return;
+      }
+      resolve(tab || null);
+    });
+  });
+}
+
+function updateTabUrl(tabId, url) {
+  return new Promise((resolve) => {
+    chrome.tabs.update(tabId, { url }, () => {
+      resolve(!chrome.runtime.lastError);
+    });
+  });
+}
+
+function queryTabs(queryInfo) {
+  return new Promise((resolve) => {
+    chrome.tabs.query(queryInfo, (tabs) => {
+      if (chrome.runtime.lastError) {
+        resolve([]);
+        return;
+      }
+      resolve(Array.isArray(tabs) ? tabs : []);
+    });
+  });
+}
+
+async function getSafetyReturnUrl(tab, referrerUrl = "") {
+  if (tab?.openerTabId) {
+    const openerTab = await getTab(tab.openerTabId);
+    if (isSafeWebUrl(openerTab?.url || "")) {
+      return openerTab.url;
+    }
+  }
+
+  if (isSafeWebUrl(referrerUrl)) {
+    return referrerUrl;
+  }
+
+  return DEFAULT_SAFETY_URL;
 }
 
 async function analyzeURL(url, filename = "", unexpectedRedirect = false) {
@@ -318,14 +454,17 @@ function formatResult(url, result, settings) {
 
 async function handleCheckUrl(url, options = {}) {
   const hostname = getHostName(url);
-  const unexpectedFromRecentClick = getUnexpectedInteractionForUrl(url);
+  const tabId = options.tabId;
+  const spawnedTabContext = getSpawnedTab(tabId);
+  let redirectTabContext = getUnexpectedRedirectTab(tabId);
+
   const unexpectedRedirect =
-    options.unexpectedRedirect === true || Boolean(unexpectedFromRecentClick);
-  const currentTabHostname = getHostName(options.currentTabUrl || "");
+    options.unexpectedRedirect === true ||
+    Boolean(redirectTabContext);
   const closeTabOnSafety = Boolean(
-    unexpectedFromRecentClick &&
-    currentTabHostname &&
-    currentTabHostname === hostname
+    options.closeTabOnSafety === true ||
+    redirectTabContext ||
+    spawnedTabContext
   );
 
   if (!hostname || shouldSkipReferenceDomain(hostname)) {
@@ -483,24 +622,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message.action === "closeCurrentTab") {
+  if (message.action === "returnToSafety") {
     const tabId = sender.tab?.id;
     if (!tabId) {
       sendResponse({ ok: false });
       return true;
     }
 
-    chrome.tabs.remove(tabId, () => {
-      sendResponse({ ok: !chrome.runtime.lastError });
-    });
+    (async () => {
+      const safetyUrl = await getSafetyReturnUrl(
+        sender.tab,
+        message.referrerUrl || ""
+      );
+      const ok = await updateTabUrl(tabId, safetyUrl);
+      sendResponse({ ok, url: safetyUrl });
+    })();
     return true;
   }
 
   if (message.action === "checkUrl") {
     const tabId = sender.tab?.id;
     const url = message.url;
+    const spawnedTabContext = getSpawnedTab(tabId);
+    const redirectTabContext = getUnexpectedRedirectTab(tabId);
 
-    if (tabId && tabCache[tabId]?.url === url && !message.forceScan) {
+    if (
+      tabId &&
+      tabCache[tabId]?.url === url &&
+      !message.forceScan &&
+      message.unexpectedRedirect !== true &&
+      !spawnedTabContext &&
+      !redirectTabContext
+    ) {
       sendResponse(tabCache[tabId].result);
       return true;
     }
@@ -509,7 +662,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const result = await handleCheckUrl(url, {
         filename: message.filename || "",
         unexpectedRedirect: message.unexpectedRedirect === true,
+        closeTabOnSafety: message.closeTabOnSafety === true,
         currentTabUrl: sender.tab?.url || "",
+        tabId,
       });
 
       if (tabId) {
@@ -542,6 +697,8 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   delete tabCache[tabId];
   delete lastUrlPerTab[tabId];
   delete recentInteractionsByTab[tabId];
+  delete spawnedTabs[tabId];
+  delete unexpectedRedirectTabs[tabId];
 
   const pending = pendingCreatedTabs[tabId];
   if (pending?.timer) clearTimeout(pending.timer);
@@ -575,10 +732,29 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (lastUrlPerTab[tabId] === changeInfo.url) return;
 
   lastUrlPerTab[tabId] = changeInfo.url;
+  const spawnedTabContext = getSpawnedTab(tabId);
+  if (spawnedTabContext) {
+    rememberSpawnedTab(
+      tabId,
+      spawnedTabContext.openerTabId,
+      changeInfo.url
+    );
+  }
+
+  const redirectTabContext = getUnexpectedRedirectTab(tabId);
+  if (redirectTabContext) {
+    rememberUnexpectedRedirectTab(
+      tabId,
+      redirectTabContext.openerTabId,
+      changeInfo.url
+    );
+  }
 
   chrome.tabs.sendMessage(tabId, {
     action: "urlChanged",
     url: changeInfo.url,
+    unexpectedRedirect: Boolean(redirectTabContext),
+    closeTabOnSafety: Boolean(redirectTabContext || spawnedTabContext),
   }).catch(() => {});
 });
 
@@ -616,11 +792,53 @@ chrome.downloads.onCreated.addListener((downloadItem) => {
       downloadBlockedCount: Number(settings.downloadBlockedCount || 0) + 1,
     });
 
-    chrome.notifications?.create({
-      type: "basic",
-      iconUrl: "icons/icon128.png",
-      title: "PhishGuard blocked a high-risk download",
-      message: "The file type can run or modify software. Download only from a source you trust.",
-    });
+    const popupShown = await showDownloadBlockedPopup(downloadItem, url, filename);
+    if (!popupShown) {
+      chrome.notifications?.create({
+        type: "basic",
+        iconUrl: "icons/icon128.png",
+        title: "PhishGuard blocked a high-risk download",
+        message: "The file type can run or modify software. Download only from a source you trust.",
+      });
+    }
   })();
 });
+
+async function showDownloadBlockedPopup(downloadItem, url, filename = "") {
+  if (!isSafeWebUrl(url)) return false;
+
+  const tabIds = await getDownloadReviewTabIds(downloadItem);
+
+  for (const tabId of tabIds) {
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        action: "downloadBlockedForReview",
+        url,
+        filename,
+      });
+      return true;
+    } catch (error) {
+      // Try the next candidate tab before falling back to notification.
+    }
+  }
+
+  return false;
+}
+
+async function getDownloadReviewTabIds(downloadItem) {
+  const ids = [];
+  const downloadTabId = Number(downloadItem?.tabId);
+
+  if (Number.isInteger(downloadTabId) && downloadTabId >= 0) {
+    ids.push(downloadTabId);
+  }
+
+  const activeTabs = await queryTabs({ active: true, lastFocusedWindow: true });
+  activeTabs.forEach((tab) => {
+    if (Number.isInteger(tab.id) && tab.id >= 0) {
+      ids.push(tab.id);
+    }
+  });
+
+  return [...new Set(ids)];
+}

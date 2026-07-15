@@ -124,6 +124,15 @@ class SupportFeatureTests(unittest.TestCase):
         self.assertFalse(status["update_configured"])
         self.assertIsNone(status["last_error"])
 
+    def test_urlhaus_requires_exact_url_match_for_shared_domains(self):
+        app.URLHAUS_SET = {"https://www.google.com/malicious/payload.exe"}
+        app.URLHAUS_DOMAINS = {"www.google.com"}
+
+        self.assertTrue(app.check_urlhaus("https://www.google.com/malicious/payload.exe"))
+        self.assertFalse(
+            app.check_urlhaus("https://www.google.com/search?q=whatsapp+web")
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

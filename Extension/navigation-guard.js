@@ -83,6 +83,46 @@
     return campaignSignals >= 3 && /^(cpc|cpm|pop|paid)$/.test(medium);
   }
 
+  function getEmbeddedDestinationUrls(value) {
+    const parsed = parseWebUrl(value);
+    if (!parsed) return [];
+
+    const destinationParams = [
+      "url",
+      "u",
+      "to",
+      "target",
+      "dest",
+      "destination",
+      "redirect",
+      "redirect_url",
+    ];
+
+    return destinationParams
+      .map((name) => parsed.searchParams.get(name))
+      .filter(Boolean)
+      .map((candidate) => parseWebUrl(candidate))
+      .filter(Boolean)
+      .map((candidate) => candidate.href);
+  }
+
+  function isSearchResultPage(value) {
+    const parsed = parseWebUrl(value);
+    if (!parsed) return false;
+
+    const hostname = normalizeHostname(parsed.hostname);
+    const pathname = parsed.pathname.toLowerCase();
+
+    if (hostname === "google.com" && pathname === "/search") return true;
+    if (hostname === "bing.com" && pathname === "/search") return true;
+    if (hostname === "duckduckgo.com" && pathname === "/") return true;
+    if (hostname === "search.yahoo.com" && pathname.includes("/search")) {
+      return true;
+    }
+
+    return false;
+  }
+
   function createInteraction({
     sourceUrl = "",
     intendedUrl = "",
@@ -116,8 +156,26 @@
     if (isSameSite(interaction.sourceUrl, target.href)) return false;
 
     if (
+      !interaction.intendedUrl &&
+      isSearchResultPage(interaction.sourceUrl) &&
+      !hasDeceptiveAdSignals(target.href)
+    ) {
+      return false;
+    }
+
+    if (
       interaction.intendedUrl &&
       isSameSite(interaction.intendedUrl, target.href) &&
+      !hasDeceptiveAdSignals(target.href)
+    ) {
+      return false;
+    }
+
+    if (
+      interaction.intendedUrl &&
+      getEmbeddedDestinationUrls(interaction.intendedUrl).some((destinationUrl) =>
+        isSameSite(destinationUrl, target.href)
+      ) &&
       !hasDeceptiveAdSignals(target.href)
     ) {
       return false;

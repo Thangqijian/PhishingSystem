@@ -12,7 +12,7 @@ import pandas as pd
 from flask           import Flask, request, jsonify
 from flask_cors      import CORS
 from datetime        import datetime, timezone
-from urllib.parse    import urlparse
+from urllib.parse    import urlparse, urlunparse
 from urllib.request  import Request, urlopen
 
 from feature_extractor import extract_features, features_to_list, FEATURE_COLS
@@ -334,6 +334,28 @@ def get_risk_level(score, is_phishing, download_info):
     return "LOW"
 
 
+def normalize_urlhaus_url(url):
+    raw_url = str(url or "").strip()
+    if not raw_url:
+        return ""
+
+    try:
+        parsed = urlparse(raw_url)
+        if not parsed.scheme or not parsed.netloc:
+            return raw_url
+
+        return urlunparse((
+            parsed.scheme.lower(),
+            parsed.netloc.lower(),
+            parsed.path or "/",
+            "",
+            parsed.query,
+            "",
+        ))
+    except Exception:
+        return raw_url
+
+
 def load_urlhaus(path=URLHAUS_DEFAULT_PATH):
     global URLHAUS_SET, URLHAUS_DOMAINS, URLHAUS_LAST_LOADED_AT, URLHAUS_LAST_ERROR
 
@@ -348,9 +370,13 @@ def load_urlhaus(path=URLHAUS_DEFAULT_PATH):
     df = pd.read_csv(path, comment="#", header=None)
 
     # column 2 usually contains URLs
-    urls = df[2].dropna().astype(str)
+    urls = df[2].dropna().astype(str).map(str.strip)
 
-    URLHAUS_SET = set(urls)
+    URLHAUS_SET = {
+        normalized
+        for normalized in (normalize_urlhaus_url(url) for url in urls)
+        if normalized
+    }
     URLHAUS_DOMAINS = set()
 
     # also store domains (better detection)
@@ -369,14 +395,11 @@ def load_urlhaus(path=URLHAUS_DEFAULT_PATH):
     print(f"[URLHaus] Loaded domains: {len(URLHAUS_DOMAINS)}")
 
 def check_urlhaus(url):
-    domain = urlparse(url).netloc
+    normalized_url = normalize_urlhaus_url(url)
 
-    # exact match
-    if url in URLHAUS_SET:
-        return True
-
-    # domain match
-    if domain in URLHAUS_DOMAINS:
+    # URLHaus is a URL feed. Domain-only matching can mark every page on a
+    # shared site as malicious when only one specific URL is listed.
+    if normalized_url in URLHAUS_SET:
         return True
 
     return False

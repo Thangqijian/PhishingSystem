@@ -196,19 +196,31 @@ test("unexpected cross-domain tabs are blocked and reported to the opener", () =
   assert.ok(backgroundJs.includes("recentGlobalInteractions"));
   assert.ok(backgroundJs.includes("findUnexpectedInteraction"));
   assert.ok(backgroundJs.includes("isUnexpectedCrossDomainTab"));
+  assert.strictEqual(backgroundJs.includes("Boolean(unexpectedFromRecentClick)"), false);
   assert.ok(backgroundJs.includes("closeTabOnSafety"));
-  assert.ok(backgroundJs.includes('message.action === "closeCurrentTab"'));
-  assert.ok(backgroundJs.includes("chrome.tabs.remove"));
+  assert.ok(backgroundJs.includes('message.action === "returnToSafety"'));
+  assert.strictEqual(backgroundJs.includes('message.action === "closeCurrentTab"'), false);
+  assert.strictEqual(backgroundJs.includes("chrome.tabs.remove"), false);
+  assert.ok(backgroundJs.includes("spawnedTabs"));
+  assert.ok(backgroundJs.includes("rememberSpawnedTab"));
+  assert.ok(backgroundJs.includes("getSpawnedTab"));
+  assert.ok(backgroundJs.includes("unexpectedRedirectTabs"));
+  assert.ok(backgroundJs.includes("rememberUnexpectedRedirectTab"));
+  assert.ok(backgroundJs.includes("getUnexpectedRedirectTab"));
   assert.ok(backgroundJs.includes('action: "unexpectedRedirectBlocked"'));
+  assert.ok(backgroundJs.includes("closeTabOnSafety: true"));
   assert.ok(backgroundJs.includes("unexpected_redirect: unexpectedRedirect"));
   assert.ok(contentJs.includes('action: "recordPageInteraction"'));
   assert.ok(contentJs.includes('message.action === "unexpectedRedirectBlocked"'));
+  assert.ok(contentJs.includes("message.unexpectedRedirect === true"));
   assert.ok(contentJs.includes(
     "unexpectedRedirect: options.unexpectedRedirect === true"
   ));
   assert.ok(contentJs.includes("referrerUrl: options.referrerUrl || document.referrer || \"\""));
   assert.ok(contentJs.includes("response.closeTabOnSafety === true"));
-  assert.ok(contentJs.includes('action: "closeCurrentTab"'));
+  assert.ok(contentJs.includes("options.unexpectedRedirect && !options.closeTabOnSafety"));
+  assert.ok(contentJs.includes('action: "returnToSafety"'));
+  assert.strictEqual(contentJs.includes("Stay on This Page"), false);
   assert.ok(contentJs.includes("Unexpected Redirect Blocked"));
   assert.ok(contentJs.includes("Malicious Redirect Blocked"));
   assert.ok(contentJs.includes("Cross-Domain Popup Protection"));
@@ -216,9 +228,14 @@ test("unexpected cross-domain tabs are blocked and reported to the opener", () =
 
 test("background supports one-time approved downloads", () => {
   const backgroundJs = fs.readFileSync(path.join(root, "background.js"), "utf8");
+  const contentJs = fs.readFileSync(path.join(root, "content.js"), "utf8");
 
   assert.ok(backgroundJs.includes('importScripts("download-allowance.js")'));
   assert.ok(backgroundJs.includes('message.action === "allowDownloadOnce"'));
+  assert.ok(backgroundJs.includes("showDownloadBlockedPopup"));
+  assert.ok(backgroundJs.includes("getDownloadReviewTabIds"));
+  assert.ok(backgroundJs.includes('action: "downloadBlockedForReview"'));
+  assert.ok(contentJs.includes('message.action === "downloadBlockedForReview"'));
   assert.ok(backgroundJs.includes("downloadAllowanceStore.consume"));
   assert.ok(backgroundJs.includes("PhishGuard blocked a high-risk download"));
 });

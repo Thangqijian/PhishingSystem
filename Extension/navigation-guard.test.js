@@ -124,6 +124,41 @@ test("a recent clicked link is not treated as unexpected without opener data", (
   );
 });
 
+test("a Google result redirect URL is expected when it opens the embedded destination", () => {
+  const targetUrl = "https://www.microsoft.com/en-my/download";
+  const interaction = createInteraction({
+    sourceUrl: "https://www.google.com/search?q=microsoft+download",
+    intendedUrl:
+      "https://www.google.com/url?sa=t&url=https%3A%2F%2Fwww.microsoft.com%2Fen-my%2Fdownload",
+    occurredAt: 1000,
+  });
+
+  assert.strictEqual(
+    isUnexpectedCrossDomainTab({
+      interaction,
+      targetUrl,
+      now: 1500,
+    }),
+    false
+  );
+});
+
+test("a Google search result click without a readable anchor is expected", () => {
+  const interaction = createInteraction({
+    sourceUrl: "https://www.google.com/search?q=7zip+download",
+    occurredAt: 1000,
+  });
+
+  assert.strictEqual(
+    isUnexpectedCrossDomainTab({
+      interaction,
+      targetUrl: "https://www.7-zip.org/",
+      now: 1500,
+    }),
+    false
+  );
+});
+
 test("a delayed popup redirect is still linked to the recent click", () => {
   const interaction = createInteraction({
     sourceUrl: "https://movies.example/watch",

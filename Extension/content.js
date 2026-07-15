@@ -153,7 +153,9 @@
             unexpectedRedirect:
               options.unexpectedRedirect === true ||
               response.unexpectedRedirect === true,
-            closeTabOnSafety: response.closeTabOnSafety === true,
+            closeTabOnSafety:
+              options.closeTabOnSafety === true ||
+              response.closeTabOnSafety === true,
           };
 
           if (options.pendingUrl && response.status === "safe") {
@@ -508,7 +510,7 @@
       if (btnSafe) btnSafe.textContent = "Back to Safety";
       if (btnContinue) btnContinue.textContent = "Download Anyway";
     } else if (isUnexpectedRedirect) {
-      if (btnSafe) btnSafe.textContent = "Stay on This Page";
+      if (btnSafe) btnSafe.textContent = "Back to Safety";
       if (btnContinue) btnContinue.style.display = "none";
     }
 
@@ -652,6 +654,15 @@
     widget.__childLockInterval = null;
   }
 
+  function fallbackReturnToSafety() {
+    if (document.referrer) {
+      window.location.href = document.referrer;
+      return;
+    }
+
+    window.location.href = "https://www.google.com";
+  }
+
   function returnToSafety(shadowRoot, options = {}) {
     const widget = shadowRoot.getElementById("ps-widget");
     if (widget?.dataset.returningToSafety === "true") return;
@@ -659,23 +670,18 @@
 
     clearChildLockCountdown(widget);
 
-    if (options.closeTabOnSafety) {
-      chrome.runtime.sendMessage({ action: "closeCurrentTab" }, () => {
-        if (!chrome.runtime.lastError) return;
-        closeWithAnimation(shadowRoot, removeHidingStyle);
-      });
-      return;
-    }
-
     closeWithAnimation(shadowRoot, () => {
       removeHidingStyle();
-      if (options.pendingUrl || options.unexpectedRedirect) return;
+      if (options.pendingUrl) return;
+      if (options.unexpectedRedirect && !options.closeTabOnSafety) return;
 
-      if (document.referrer) {
-        window.history.back();
-      } else {
-        window.location.href = "https://www.google.com";
-      }
+      chrome.runtime.sendMessage({
+        action: "returnToSafety",
+        referrerUrl: document.referrer || "",
+      }, (response) => {
+        if (!chrome.runtime.lastError && response?.ok) return;
+        fallbackReturnToSafety();
+      });
     });
   }
 
@@ -1106,17 +1112,30 @@
 
   chrome.runtime.onMessage.addListener((message) => {
     if (message.action === "urlChanged") {
-      runCheck(message.url || window.location.href);
+      runCheck(message.url || window.location.href, {
+        forceScan: message.unexpectedRedirect === true,
+        unexpectedRedirect: message.unexpectedRedirect === true,
+        closeTabOnSafety: message.closeTabOnSafety === true,
+      });
     }
 
     if (message.action === "openDashboardOverlay") {
       openStandaloneDashboard();
     }
 
+    if (message.action === "downloadBlockedForReview" && message.url) {
+      runCheck(message.url, {
+        forceScan: true,
+        filename: message.filename || "",
+        pendingUrl: message.url,
+      });
+    }
+
     if (message.action === "unexpectedRedirectBlocked" && message.url) {
       runCheck(message.url, {
         forceScan: true,
         unexpectedRedirect: true,
+        closeTabOnSafety: message.closeTabOnSafety === true,
       });
     }
   });
